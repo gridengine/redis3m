@@ -12,7 +12,8 @@ connection::connection(const std::string& host, const unsigned port)
     if (c->err != REDIS_OK)
     {
         redisFree(c);
-        throw unable_to_connect();
+        std::string err = "unable to connect to " + host + ":" + std::to_string(port);
+        throw unable_to_connect(err);
     }
 }
 
@@ -36,7 +37,7 @@ void connection::append(const std::vector<std::string> &commands)
     int ret = redisAppendCommandArgv(c, static_cast<int>(commands.size()), argv.data(), argvlen.data());
     if (ret != REDIS_OK)
     {
-        throw transport_failure();
+        throw transport_failure("connection::append");
     }
 }
 
@@ -46,7 +47,7 @@ reply connection::get_reply()
     int error = redisGetReply(c, reinterpret_cast<void**>(&r));
     if (error != REDIS_OK)
     {
-        throw transport_failure();
+        throw transport_failure("connection::get_reply");
     }
     reply ret(r);
     freeReplyObject(r);
@@ -54,7 +55,7 @@ reply connection::get_reply()
     if (ret.type() == reply::type_t::ERROR &&
 		(ret.str().find("READONLY") == 0) )
     {
-        throw slave_read_only();
+        throw slave_read_only("connection::get_reply");
     }
     return ret;
 }
